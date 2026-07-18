@@ -28,19 +28,20 @@ def get_prices(codes):
 
     results = {}
     for item in data.get("datas", []):
-        code = item.get("cd")
+        code = item.get("itemCode")
+        compare = item.get("compareToPreviousPrice", {}) or {}
         results[code] = {
-            "name": item.get("nm"),
-            "price": item.get("nv"),        # 현재가
-            "change": item.get("cv"),       # 전일 대비 변동
-            "change_rate": item.get("cr"),  # 등락률(%)
-            "rise_fall": item.get("rf"),    # 2:상승, 4:하락, 3:보합 등
+            "name": item.get("stockName"),
+            "price": item.get("closePrice"),                       # 현재가
+            "change": item.get("compareToPreviousClosePrice"),      # 전일 대비 변동
+            "change_rate": item.get("fluctuationsRatio"),           # 등락률(%)
+            "rise_fall": compare.get("code"),                       # 1~2 상승, 3 보합, 4~5 하락
         }
     return results
 
 
 def build_message(prices):
-    icon = {"2": "🔺", "4": "🔻", "3": "➖", "5": "🔺", "1": "🔺"}
+    icon = {"1": "🔺", "2": "🔺", "3": "➖", "4": "🔻", "5": "🔻"}
     lines = ["📈 주가 알림"]
     for code, name in STOCKS.items():
         info = prices.get(code)
