@@ -16,7 +16,13 @@ STOCKS = {
 def get_prices(codes):
     """네이버 금융 실시간 시세 API에서 현재가/등락률을 가져온다."""
     url = "https://polling.finance.naver.com/api/realtime/domestic/stock/" + ",".join(codes)
-    resp = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Referer": "https://finance.naver.com/",
+    }
+    resp = requests.get(url, timeout=10, headers=headers)
+    print(f"[디버그] HTTP 상태코드: {resp.status_code}")
+    print(f"[디버그] 응답 내용(앞 500자): {resp.text[:500]}")
     resp.raise_for_status()
     data = resp.json()
 
