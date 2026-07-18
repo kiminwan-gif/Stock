@@ -1,0 +1,28 @@
+name: 주가 알림
+
+on:
+  schedule:
+    # 매시 정각 실행 (UTC 기준, 한국시간 -9시간)
+    - cron: "0 * * * *"
+  workflow_dispatch: {}  # 수동 실행 버튼도 사용 가능
+
+jobs:
+  send-alert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 파이썬 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 패키지 설치
+        run: pip install requests
+
+      - name: 스크립트 실행
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python send_stock_alert.py
