@@ -1,16 +1,26 @@
 import os
 import sys
+from datetime import datetime, timezone, timedelta
 import requests
 
 # ── 설정 ──────────────────────────────────────────────
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+KST = timezone(timedelta(hours=9))
 
 STOCKS = {
     "005930": "삼성전자",
     "000660": "SK하이닉스",
 }
 # ──────────────────────────────────────────────────────
+
+
+def is_within_active_hours():
+    """평일(월~금) 08:00~20:00(KST)인지 확인한다."""
+    now = datetime.now(KST)
+    is_weekday = now.weekday() < 5  # 0=월요일 ... 4=금요일
+    is_active_hour = 8 <= now.hour < 20
+    return is_weekday and is_active_hour
 
 
 def get_prices(codes):
@@ -21,8 +31,6 @@ def get_prices(codes):
         "Referer": "https://finance.naver.com/",
     }
     resp = requests.get(url, timeout=10, headers=headers)
-    print(f"[디버그] HTTP 상태코드: {resp.status_code}")
-    print(f"[디버그] 응답 내용(앞 500자): {resp.text[:500]}")
     resp.raise_for_status()
     data = resp.json()
 
@@ -32,10 +40,10 @@ def get_prices(codes):
         compare = item.get("compareToPreviousPrice", {}) or {}
         results[code] = {
             "name": item.get("stockName"),
-            "price": item.get("closePrice"),                       # 현재가
-            "change": item.get("compareToPreviousClosePrice"),      # 전일 대비 변동
-            "change_rate": item.get("fluctuationsRatio"),           # 등락률(%)
-            "rise_fall": compare.get("code"),                       # 1~2 상승, 3 보합, 4~5 하락
+            "price": item.get("closePrice"),
+            "change": item.get("compareToPreviousClosePrice"),
+            "change_rate": item.get("fluctuationsRatio"),
+            "rise_fall": compare.get("code"),
         }
     return results
 
@@ -65,6 +73,11 @@ def main():
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
         print("환경변수 TELEGRAM_TOKEN, TELEGRAM_CHAT_ID 가 설정되어 있지 않습니다.")
         sys.exit(1)
+
+    if not is_within_active_hours():
+        now = datetime.now(KST)
+        print(f"[스킵] 현재 시각 {now.strftime('%Y-%m-%d %H:%M')} (KST)은 알림 대상 시간대가 아닙니다.")
+        return
 
     prices = get_prices(list(STOCKS.keys()))
     message = build_message(prices)
